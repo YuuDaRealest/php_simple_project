@@ -83,12 +83,18 @@ if($action == 'edit' && $id) {
     <title>Quản lý sách - Hệ thống thư viện</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 bg-dark text-white p-0" style="min-height: 100vh;">
+            <div class="col-md-3 col-lg-2 sidebar p-0">
                 <div class="p-3">
                     <h4 class="mb-4">
                         <i class="fas fa-book"></i> Thư viện
@@ -103,8 +109,11 @@ if($action == 'edit' && $id) {
                         <a class="nav-link text-white" href="../members/index.php">
                             <i class="fas fa-users"></i> Quản lý thành viên
                         </a>
-                        <a class="nav-link text-white" href="../borrowings/index.php">
+                        <a class="nav-link text-white" href="../borrowings/index.php">  
                             <i class="fas fa-exchange-alt"></i> Mượn/Trả sách
+                        </a>
+                        <a class="nav-link text-white" href="reports/index.php">
+                            <i class="fas fa-chart-bar"></i> Báo cáo
                         </a>
                     </nav>
                 </div>

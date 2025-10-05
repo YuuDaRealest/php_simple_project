@@ -23,87 +23,66 @@ class Member {
     }
 
     // Lấy thành viên theo ID
-    public function readOne() {
+    public function readOne($id) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
+        $stmt->bindParam(1, $id);
         $stmt->execute();
         
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if($row) {
-            $this->name = $row['name'];
-            $this->email = $row['email'];
-            $this->phone = $row['phone'];
-            $this->address = $row['address'];
-            $this->membership_number = $row['membership_number'];
-            return true;
-        }
-        return false;
+        return $stmt;
     }
 
     // Tạo thành viên mới
-    public function create() {
+    public function create($data) {
         $query = "INSERT INTO " . $this->table_name . " 
                   SET name=:name, email=:email, phone=:phone, address=:address, membership_number=:membership_number";
         
         $stmt = $this->conn->prepare($query);
         
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->phone = htmlspecialchars(strip_tags($this->phone));
-        $this->address = htmlspecialchars(strip_tags($this->address));
-        $this->membership_number = htmlspecialchars(strip_tags($this->membership_number));
+        $name = htmlspecialchars(strip_tags($data['name']));
+        $email = htmlspecialchars(strip_tags($data['email']));
+        $phone = htmlspecialchars(strip_tags($data['phone']));
+        $address = htmlspecialchars(strip_tags($data['address'] ?? ''));
+        $membership_number = $this->generateMembershipNumber();
         
-        $stmt->bindParam(":name", $this->name);
-        $stmt->bindParam(":email", $this->email);
-        $stmt->bindParam(":phone", $this->phone);
-        $stmt->bindParam(":address", $this->address);
-        $stmt->bindParam(":membership_number", $this->membership_number);
+        $stmt->bindParam(":name", $name);
+        $stmt->bindParam(":email", $email);
+        $stmt->bindParam(":phone", $phone);
+        $stmt->bindParam(":address", $address);
+        $stmt->bindParam(":membership_number", $membership_number);
         
-        if($stmt->execute()) {
-            return true;
-        }
-        return false;
+        return $stmt->execute();
     }
 
     // Cập nhật thành viên
-    public function update() {
+    public function update($id, $data) {
         $query = "UPDATE " . $this->table_name . " 
-                  SET name=:name, email=:email, phone=:phone, address=:address, membership_number=:membership_number
+                  SET name=:name, email=:email, phone=:phone, address=:address
                   WHERE id=:id";
         
         $stmt = $this->conn->prepare($query);
         
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->phone = htmlspecialchars(strip_tags($this->phone));
-        $this->address = htmlspecialchars(strip_tags($this->address));
-        $this->membership_number = htmlspecialchars(strip_tags($this->membership_number));
-        $this->id = htmlspecialchars(strip_tags($this->id));
+        $name = htmlspecialchars(strip_tags($data['name']));
+        $email = htmlspecialchars(strip_tags($data['email']));
+        $phone = htmlspecialchars(strip_tags($data['phone']));
+        $address = htmlspecialchars(strip_tags($data['address'] ?? ''));
         
-        $stmt->bindParam(":name", $this->name);
-        $stmt->bindParam(":email", $this->email);
-        $stmt->bindParam(":phone", $this->phone);
-        $stmt->bindParam(":address", $this->address);
-        $stmt->bindParam(":membership_number", $this->membership_number);
-        $stmt->bindParam(":id", $this->id);
+        $stmt->bindParam(":name", $name);
+        $stmt->bindParam(":email", $email);
+        $stmt->bindParam(":phone", $phone);
+        $stmt->bindParam(":address", $address);
+        $stmt->bindParam(":id", $id);
         
-        if($stmt->execute()) {
-            return true;
-        }
-        return false;
+        return $stmt->execute();
     }
 
     // Xóa thành viên
-    public function delete() {
+    public function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
+        $stmt->bindParam(1, $id);
         
-        if($stmt->execute()) {
-            return true;
-        }
-        return false;
+        return $stmt->execute();
     }
 
     // Tạo mã thành viên tự động

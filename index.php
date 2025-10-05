@@ -12,21 +12,26 @@ $member = new Member($db);
 $borrowing = new Borrowing($db);
 
 // Lấy thống kê
-$books_count = $book->read()->rowCount();
-$members_count = $member->read()->rowCount();
-$borrowings_count = $borrowing->read()->rowCount();
-$overdue_count = $borrowing->getOverdueBooks()->rowCount();
+$books_stmt = $book->read();
+$books_count = $books_stmt->rowCount();
+
+$members_stmt = $member->read();
+$members_count = $members_stmt->rowCount();
+
+$borrowings_stmt = $borrowing->read();
+$borrowings_count = $borrowings_stmt->rowCount();
+
+$overdue_stmt = $borrowing->getOverdueBooks();
+$overdue_count = $overdue_stmt->rowCount();
 
 // Lấy sách mới nhất
-$latest_books = $book->read();
-$latest_books->execute();
-$latest_books_data = $latest_books->fetchAll(PDO::FETCH_ASSOC);
+$latest_books_stmt = $book->read();
+$latest_books_data = $latest_books_stmt->fetchAll(PDO::FETCH_ASSOC);
 $latest_books_data = array_slice($latest_books_data, 0, 5);
 
 // Lấy giao dịch mượn sách gần đây
-$recent_borrowings = $borrowing->read();
-$recent_borrowings->execute();
-$recent_borrowings_data = $recent_borrowings->fetchAll(PDO::FETCH_ASSOC);
+$recent_borrowings_stmt = $borrowing->read();
+$recent_borrowings_data = $recent_borrowings_stmt->fetchAll(PDO::FETCH_ASSOC);
 $recent_borrowings_data = array_slice($recent_borrowings_data, 0, 5);
 ?>
 
