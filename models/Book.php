@@ -18,7 +18,7 @@ class Book {
 
     // Lấy tất cả sách
     public function read() {
-        $query = "SELECT * FROM " . $this->table_name . " ORDER BY title ASC";
+        $query = "SELECT * FROM " . $this->table_name . " ORDER BY id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;

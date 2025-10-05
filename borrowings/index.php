@@ -16,6 +16,12 @@ $id = isset($_GET['id']) ? $_GET['id'] : 0;
 $message = '';
 $message_type = '';
 
+// Xử lý success message từ URL parameter
+if(isset($_GET['success']) && $_GET['success'] == 'return') {
+    $message = 'Trả sách thành công!';
+    $message_type = 'success';
+}
+
 // Xử lý các action
 if($action == 'create' && $_POST) {
     $data = [
@@ -29,7 +35,7 @@ if($action == 'create' && $_POST) {
         $message = 'Thêm giao dịch mượn sách thành công!';
         $message_type = 'success';
     } else {
-        $message = 'Có lỗi xảy ra khi thêm giao dịch mượn sách!';
+        $message = 'Có lỗi xảy ra khi thêm giao dịch mượn sách! Sách có thể không có sẵn.';
         $message_type = 'danger';
     }
 }
@@ -56,14 +62,22 @@ if($action == 'update' && $_POST) {
 
 if($action == 'return' && $_POST) {
     $id = $_POST['borrowing_id'];
-    $return_date = $_POST['return_date'];
+    $return_date = isset($_POST['return_date']) ? $_POST['return_date'] : null;
+    
+    // Debug thông tin
+    error_log("Return action - ID: $id, Return date: " . ($return_date ?: 'current date'));
     
     if($borrowing->returnBook($id, $return_date)) {
         $message = 'Trả sách thành công!';
         $message_type = 'success';
+        
+        // Redirect để tránh resubmit form
+        header("Location: " . $_SERVER['PHP_SELF'] . "?success=return");
+        exit;
     } else {
-        $message = 'Có lỗi xảy ra khi trả sách!';
+        $message = 'Có lỗi xảy ra khi trả sách! Kiểm tra console để xem chi tiết lỗi.';
         $message_type = 'danger';
+        error_log("Return book failed - ID: $id, Return date: " . ($return_date ?: 'current date'));
     }
 }
 
@@ -149,9 +163,7 @@ if($action == 'edit' && $id) {
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h1>Quản lý mượn sách</h1>
                         <div>
-                            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#returnModal">
-                                <i class="fas fa-undo"></i> Trả sách
-                            </button>
+
                             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#borrowingModal">
                                 <i class="fas fa-plus"></i> Mượn sách
                             </button>
@@ -238,7 +250,8 @@ if($action == 'edit' && $id) {
                                                         </button>
                                                         <?php if ($borrowing_item['status'] === 'borrowed'): ?>
                                                             <button type="button" class="btn btn-sm btn-success" 
-                                                                    onclick="quickReturn(<?php echo $borrowing_item['id']; ?>)">
+                                                                    onclick="quickReturn(<?php echo $borrowing_item['id']; ?>)"
+                                                                    title="Trả sách">
                                                                 <i class="fas fa-undo"></i>
                                                             </button>
                                                         <?php endif; ?>
@@ -351,7 +364,7 @@ if($action == 'edit' && $id) {
     <div class="modal fade" id="returnModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST">
+                <form method="POST" action="?action=return">
                     <div class="modal-header">
                         <h5 class="modal-title">Trả sách</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -397,20 +410,45 @@ if($action == 'edit' && $id) {
             document.getElementById('return_date_group').style.display = 'block';
             document.getElementById('status_group').style.display = 'block';
             
-            // Thay đổi action của form
-            document.querySelector('form').action = '?action=update';
+            // Thay đổi action của form trong borrowing modal (không ảnh hưởng đến return modal)
+            const borrowingForm = document.querySelector('#borrowingModal form');
+            if (borrowingForm) {
+                borrowingForm.action = '?action=update';
+            }
             
             new bootstrap.Modal(document.getElementById('borrowingModal')).show();
         }
         
         function quickReturn(borrowingId) {
+            console.log('quickReturn called with ID:', borrowingId);
+            
+            // Validate input
+            if (!borrowingId || borrowingId <= 0) {
+                console.error('Invalid borrowing ID:', borrowingId);
+                alert('ID giao dịch không hợp lệ!');
+                return;
+            }
+            
             document.getElementById('returnBorrowingId').value = borrowingId;
             
             // Find the borrowing info
-            const row = document.querySelector(`button[onclick*="${borrowingId}"]`).closest('tr');
-            const bookTitle = row.cells[1].querySelector('strong').textContent;
-            const memberName = row.cells[2].textContent;
-            const dueDate = row.cells[4].textContent;
+            const returnButton = document.querySelector(`button[onclick*="quickReturn(${borrowingId})"]`);
+            if (!returnButton) {
+                console.error('Return button not found for ID:', borrowingId);
+                alert('Không tìm thấy thông tin giao dịch!');
+                return;
+            }
+            
+            const row = returnButton.closest('tr');
+            if (!row) {
+                console.error('Row not found for borrowing ID:', borrowingId);
+                alert('Không tìm thấy dòng dữ liệu!');
+                return;
+            }
+            
+            const bookTitle = row.cells[1].querySelector('strong')?.textContent || 'N/A';
+            const memberName = row.cells[2].textContent || 'N/A';
+            const dueDate = row.cells[4].textContent || 'N/A';
             
             document.getElementById('returnInfo').innerHTML = `
                 <strong>Sách:</strong> ${bookTitle}<br>
@@ -418,6 +456,11 @@ if($action == 'edit' && $id) {
                 <strong>Hạn trả:</strong> ${dueDate}
             `;
             
+            // Set today's date as default return date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('return_date_modal').value = today;
+            
+            console.log('Opening modal for borrowing ID:', borrowingId);
             var modal = new bootstrap.Modal(document.getElementById('returnModal'));
             modal.show();
         }
@@ -425,8 +468,12 @@ if($action == 'edit' && $id) {
         // Reset form khi đóng modal
         document.getElementById('borrowingModal').addEventListener('hidden.bs.modal', function() {
             document.getElementById('borrowingModalTitle').textContent = 'Mượn sách mới';
-            document.querySelector('form').action = '?action=create';
-            document.querySelector('form').reset();
+            // Chỉ reset form trong borrowing modal
+            const borrowingForm = document.querySelector('#borrowingModal form');
+            if (borrowingForm) {
+                borrowingForm.action = '?action=create';
+                borrowingForm.reset();
+            }
             document.getElementById('return_date_group').style.display = 'none';
             document.getElementById('status_group').style.display = 'none';
         });

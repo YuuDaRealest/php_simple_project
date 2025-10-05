@@ -23,7 +23,7 @@ class Borrowing {
                   FROM " . $this->table_name . " b
                   LEFT JOIN books bk ON b.book_id = bk.id
                   LEFT JOIN members m ON b.member_id = m.id
-                  ORDER BY b.borrow_date DESC";
+                  ORDER BY b.id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
@@ -141,7 +141,7 @@ class Borrowing {
     }
 
     // Trả sách
-    public function returnBook($id, $return_date) {
+    public function returnBook($id, $return_date = null) {
         // Lấy thông tin giao dịch
         $query = "SELECT book_id FROM " . $this->table_name . " WHERE id = ? AND status = 'borrowed'";
         $stmt = $this->conn->prepare($query);
@@ -153,13 +153,18 @@ class Borrowing {
             return false; // Giao dịch không tồn tại hoặc đã được trả
         }
         
+        // Nếu không có ngày trả được truyền vào, sử dụng ngày hiện tại
+        if ($return_date === null) {
+            $return_date = date('Y-m-d');
+        } else {
+            $return_date = htmlspecialchars(strip_tags($return_date));
+        }
+        
         $query = "UPDATE " . $this->table_name . " 
                   SET return_date=:return_date, status='returned'
                   WHERE id=:id";
         
         $stmt = $this->conn->prepare($query);
-        
-        $return_date = htmlspecialchars(strip_tags($return_date));
         
         $stmt->bindParam(":return_date", $return_date);
         $stmt->bindParam(":id", $id);
